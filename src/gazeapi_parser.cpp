@@ -94,9 +94,9 @@ namespace gtl
 
         status_code =
             *status == 200 ? GASC_OK :
-            800 ? GASC_CALIBRATION_CHANGE :
-            801 ? GASC_DISPLAY_CHANGE :
-            802 ? GASC_TRACKER_STATE_CHANGE :
+            *status == 800 ? GASC_CALIBRATION_CHANGE :
+            *status == 801 ? GASC_DISPLAY_CHANGE :
+            *status == 802 ? GASC_TRACKER_STATE_CHANGE :
             GASC_ERROR;
 
         return *status != GASC_UNKNOWN;
