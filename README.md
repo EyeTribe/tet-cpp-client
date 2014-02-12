@@ -22,15 +22,25 @@ The CMake GUI can be obtained at http://www.cmake.org.
 Dependencies
 ----
 
-In order to provide non-C++11 portability and network support, the C++ SDK utilities a variety of Boost libraries. The lowest boost version version tested is 1.53, but older versions may work. For information on obtaining and installing a recent version of Boost, please visit http://www.boost.org.
+In order to provide non-C++11 portability and network support, the C++ SDK utilizes a variety of Boost libraries. The lowest boost version version tested is 1.53, but older versions may work. For information on obtaining and installing a recent version of Boost, please visit http://www.boost.org.
+
+Boost is meant to be built from source and does include instructions on how to accomplish this. However, prebuilt binaries can be downloaded as well. CMake may encounter issues with prebuilt versions of Boost, and thus we advise users to build Boost manually.
 
 
 Build
 ----
 
 1. Install boost 
-2. Use CMake to generate project files 
-3. Build library with your preferred build tool
+2. Use CMake GUI to generate project files 
+3. Build the C++ SDK library with your preferred compiler
+
+Note: In step 2) CMake will try to find Boost during configure. If that fails do the following:
+a. Turn on the Advanced flag
+b. Set BOOST_INCLUDE_DIR to the path of the _root_ of Boost
+c. Configure
+d. If CMake fails to find the Boost libraries, then set BOOST_LIBRARYDIR to the path of where the prebuilt libraries  of Boost are located
+e. Configure and this should succeed
+f. Generate project files 
 
 
 Samples
@@ -47,6 +57,15 @@ The complete API specification used by the C++ SDK to communicate with the serve
 
 Changelog
 ----
+
+0.9.27 (2014-02-11)
+- Bug fix of status code
+- Removed forward declarations and included interface and types headers instead in gazeapi.h
+- Fixed hanging observers
+- Cleans up when shutting down!
+- Added push_mode to connect (similar to C# SDK)
+- Fixed bug where no GazeData was ever sent to the client
+- Added is_connected() connectivity info to the GazeApi
 
 0.9.26 (2014-01-30)
 - Initial release

@@ -29,7 +29,7 @@ namespace gtl
             return true;
         }
 
-        OptionalPTree calibresult = values->get_child("calibresult");
+        OptionalPTree calibresult = values->get_child_optional("calibresult");
 
         if(!calibresult)
         {
@@ -94,9 +94,9 @@ namespace gtl
 
         status_code =
             *status == 200 ? GASC_OK :
-            800 ? GASC_CALIBRATION_CHANGE :
-            801 ? GASC_DISPLAY_CHANGE :
-            802 ? GASC_TRACKER_STATE_CHANGE :
+            *status == 800 ? GASC_CALIBRATION_CHANGE :
+            *status == 801 ? GASC_DISPLAY_CHANGE :
+            *status == 802 ? GASC_TRACKER_STATE_CHANGE :
             GASC_ERROR;
 
         return *status != GASC_UNKNOWN;
@@ -180,7 +180,7 @@ namespace gtl
             *req == "pointend" ? GAR_POINTEND :
             GAR_UNKNOWN;
 
-        return true;//request != GAR_UNKNOWN;
+        return true;
     }
 
     /* static */ bool Parser::parse_point2d(Point2D & point, boost::property_tree::ptree const & object)

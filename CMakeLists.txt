@@ -8,8 +8,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 #----------------------------------------------------------------
 #
-# Indicate CMake 2.7 and above that we don't want to mix relative
-#  and absolute paths in linker lib lists.
+# We don't want to mix relative and absolute paths in linker lib lists.
 #
 if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)
@@ -19,11 +18,9 @@ PROJECT(TET_CPPSDK)
 
 #-----------------------------------------------------------------------------
 #
-# We only want a debug and release configurations
+# We only want debug and release configurations
 #
 SET(CMAKE_CONFIGURATION_TYPES  "Debug" "Release"  CACHE INTERNAL  "Allowed Configuration types" FORCE)
-
-SET(TET_GENERATE_DOCS      FALSE     CACHE  BOOL    "Should we run docs compilation")
 
 SET(TET_CPPSDK_INCLUDE_DIRS ${CMAKE_CURRENT_LIST_DIR}/include)
 SET(TET_CPPSDK_LIBS "")
@@ -39,8 +36,14 @@ IF(Boost_FOUND)
 ELSE()
   message (FATAL_ERROR "Could not find Boost libraries!")
 ENDIF(Boost_FOUND)
-  
-FILE( GLOB TET_CPPSDK_FILES  ${CMAKE_CURRENT_LIST_DIR}/include/*.h ${CMAKE_CURRENT_LIST_DIR}/src/*.hpp ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp )
+
+#-----------------------------------------------------------------------------
+#
+# We only want debug and release configurations
+#
+FILE( GLOB TET_CPPSDK_FILES  ${CMAKE_CURRENT_LIST_DIR}/include/*.h
+                             ${CMAKE_CURRENT_LIST_DIR}/src/*.hpp
+                             ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp )
 
 INCLUDE_DIRECTORIES( ${TET_CPPSDK_INCLUDE_DIRS} )
 
@@ -58,7 +61,7 @@ IF( WIN32 )
 ENDIF( WIN32 )
 
 TARGET_LINK_LIBRARIES(${LIB_NAME} ${Boost_LIBRARIES})
-  
+ 
 #-----------------------------------------------------------------------------
 #
 # Copy static lib into correct folder using a post-build event

@@ -29,7 +29,7 @@ namespace gtl
 
         void remove_observer(T & observer)
         {
-            for (int i = m_observers.size()-1 ; i > 0; --i)
+            for (int i = m_observers.size()-1; i >= 0; --i)
             {
                 if (&observer == m_observers[i])
                 {

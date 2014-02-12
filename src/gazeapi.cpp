@@ -160,16 +160,24 @@ namespace gtl
             : m_socket(verbose)
             , m_state(AS_STOPPED)
         {
-            
             m_heartbeat.add_observer(*this);
             m_socket.add_observer(*this);
         }
 
         virtual ~Engine()
-        {}
+        {
+            m_heartbeat.remove_observer(*this);
+            m_socket.remove_observer(*this);
+            disconnect();
+        }
+
+        bool is_running() const
+        {
+            return m_state == AS_RUNNING;
+        }
 
         // GazeApi support
-        bool connect(std::string const & port)
+        bool connect(bool push_mode, std::string const & port)
         {
             if (AS_STOPPED != m_state)
             {
@@ -182,7 +190,7 @@ namespace gtl
 
             if (success)
             {
-                m_state = AS_RUNNING;
+                m_state = AS_INITIALIZING;
 
                 memset(&m_server_proxy, 0, sizeof(ServerState));
 
@@ -191,8 +199,16 @@ namespace gtl
                 // Set version 1
                 set_version(1);
 
+                // Set push or pull mode
+                set_push(push_mode);
+
                 // retrieve current state
                 get_tracker_state();
+
+                while(m_state == AS_INITIALIZING)
+                {
+                    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
+                };
             }
 
             return success;
@@ -200,7 +216,7 @@ namespace gtl
 
         void disconnect()
         {
-            if (m_state == AS_RUNNING)
+            if (m_state != AS_STOPPED)
             {
                 m_heartbeat.stop();
                 m_socket.disconnect();
@@ -379,7 +395,7 @@ namespace gtl
     private:
         void send(std::string const & message)
         {
-            if (m_state == AS_RUNNING)
+            if (m_state != AS_STOPPED)
             {
                 m_socket.send(message);
             }
@@ -438,15 +454,16 @@ namespace gtl
                 return;
             }
 
+            // If message is a heartbeat just ignore
+            if (message.is(GAC_HEARTBEAT))
+            {
+                return; // Heartbeat reply, so just ignore
+            }
+
             // If message is NOT a notification we need to parse the request as well
             if(!message.is_notification() && !Parser::parse_request(message.m_request, root))
             {
                 return; // Broken request, so just ignore
-            }
-
-            if (message.is(GAC_HEARTBEAT))
-            {
-                return; // Heartbeat reply, so just ignore
             }
 
             if (message.is(GAC_TRACKER))
@@ -472,7 +489,7 @@ namespace gtl
                         return; // Parsing failed, so just return
                     }
 
-                    if (has_gaze_data && gaze_data != m_gaze_data)
+                    if (has_gaze_data && (m_server_proxy.push || m_gaze_data != gaze_data))
                     {
                         m_gaze_lock.lock();
                         m_gaze_data = gaze_data;
@@ -538,6 +555,11 @@ namespace gtl
 
                     // Update everything
                     m_server_proxy = server_state;
+
+                    if (m_state == AS_INITIALIZING)
+                    {
+                        m_state = AS_RUNNING;
+                    }
                 }
                 return;
             }
@@ -611,7 +633,7 @@ namespace gtl
         }
 
     private:
-        enum ApiState { AS_STOPPED, AS_RUNNING, AS_ISCALIBRATING };
+        enum ApiState { AS_STOPPED, AS_INITIALIZING, AS_RUNNING, AS_ISCALIBRATING };
 
         Heartbeater                     m_heartbeat;
         Socket                          m_socket;
@@ -676,16 +698,21 @@ namespace gtl
         m_engine->remove_observer(listener);
     }
 
-    bool GazeApi::connect()
+    bool GazeApi::is_connected() const
     {
-        return connect( 6555 );
+        return m_engine->is_running();
     }
 
-    bool GazeApi::connect(unsigned short port)
+    bool GazeApi::connect(bool push_mode)
+    {
+        return connect(push_mode, 6555);
+    }
+
+    bool GazeApi::connect(bool push_mode, unsigned short port)
     {
         std::stringstream ss;
         ss << port;
-        return m_engine->connect(ss.str());
+        return m_engine->connect(push_mode, ss.str());
     }
 
     void GazeApi::disconnect()

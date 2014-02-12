@@ -1,22 +1,15 @@
 #ifndef _THEEYETRIBE_GAZEAPI_H_
 #define _THEEYETRIBE_GAZEAPI_H_
 
+#include <gazeapi_types.h>
+#include <gazeapi_interfaces.h>
+
 #include <memory>
 #include <string>
 
+
 namespace gtl
 {
-    // Type forwards
-    struct GazeData;
-    struct CalibResult;
-    struct ServerState;
-    struct Screen;
-
-    // Interface forwards
-    class IGazeListener;
-    class ICalibrationResultListener;
-    class ITrackerStateListener;
-    class ICalibrationProcessHandler;
 
     /** \class GazeApi
     *   This is the main entry point into the GaziApi library for communicating and controlling The Eyetribe Tracker server
@@ -89,18 +82,26 @@ namespace gtl
          */
         void remove_listener(ICalibrationProcessHandler & listener);
 
+        /** Query whether the client is connected the the server.
+         *
+         * \return bool True if connected, false if not.
+         */
+        bool is_connected() const;
+
         /** Connect to the server via default port.
          *
+         * \param[in] push_mode connect using push mode? otherwice pull mode is activated.
          * \return bool True if connected, false if connection failed.
          */
-        bool connect();
+        bool connect(bool push_mode);
 
         /** Connect to the server via specified port.
          *
-         * \param port port number to connect to server on.
+         * \param[in] push_mode connect using push mode? otherwice pull mode is activated.
+         * \param[in] port port number to connect to server on.
          * \return bool True if connected, false if connection failed.
          */
-        bool connect(unsigned short port);
+        bool connect(bool push_mode, unsigned short port);
 
         /** Disconnect from server. */
         void disconnect();

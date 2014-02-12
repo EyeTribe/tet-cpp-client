@@ -96,7 +96,7 @@ namespace gtl
 
         if (m_verbose)
         {
-            std::cout << "Send: " << message << "" <<std::endl << std::flush;
+            std::cout << "Send: " << message << std::endl << std::flush;
         }
 
         return true;
@@ -137,7 +137,7 @@ namespace gtl
 
             if (m_verbose)
             {
-                std::cout << "Recv: " << reply << std::flush;
+                std::cout << "Recv: " << reply << std::endl << std::flush;
             }
         }
     }
