@@ -122,7 +122,7 @@ namespace gtl
             gaze_data.fix = frame->get<bool>("fix");
             gaze_data.state  = frame->get<int>("state");
             parse_point2d(gaze_data.raw, frame->get_child("raw"));
-            parse_point2d(gaze_data.raw, frame->get_child("avg"));
+            parse_point2d(gaze_data.avg, frame->get_child("avg"));
             parse_eye(gaze_data.lefteye, frame->get_child("lefteye"));
             parse_eye(gaze_data.righteye, frame->get_child("righteye"));
         }

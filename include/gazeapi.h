@@ -126,15 +126,15 @@ namespace gtl
 
         /** Get current GazeData
          *
-         * Attempts to retrieve the current valid GazeData. If push-mode is enabled, the method returns with true, 
-           meaning that values in gaze_data parameter indeed are latest valid. If push-mode is disabled, the method 
-           requests the latest GazeData from the server and returns a false. When the GazeData are delivered from the server,
-           the GazeApi will fire an IGazeListener::on_gaze_data(gtl::GazeData const & gaze_data) containing the latest GazeData.
-
+         * Attempts to retrieve the current valid GazeData. If push-mode is enabled gaze_data is filled with the latest valid GazeData.
+         * If push-mode is disabled the method requests the latest GazeData from the server and fills out gaze_data when it is available.
+         * 
+         * In pull-mode this is a blocking call. The method does not terminate before a new GazeData has been delivered.
+         * In push-mode the GazeApi will fire an IGazeListener::on_gaze_data(gtl::GazeData const & gaze_data) containing the latest GazeData.
+         * 
          * \param[out] gaze_data valid GazeData if push-mode enabled, invalid otherwise.
-         * \return bool true if gaze_data parameter is valid, false if not.
          */
-        bool get_frame(GazeData & gaze_data) const;
+        void get_frame(GazeData & gaze_data) const;
 
         /** Get current valid calibration 
          *
@@ -151,8 +151,9 @@ namespace gtl
         /** Begin new calibration sesssion.
          *
          * \param[in] point_count The number of points to use for calibration.
+         * \returns indication of the request processed okay.
          */
-        void calibration_start(int const point_count);
+        bool calibration_start(int const point_count);
 
         /** Clear the current server calibration .
          *

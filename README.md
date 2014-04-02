@@ -58,6 +58,11 @@ The complete API specification used by the C++ SDK to communicate with the serve
 Changelog
 ----
 
+0.9.31 (2014-04-01)
+- Fixed wrong Json-formatted set screen request string
+- Fixed bug related to uninitialized "avg" member of GazeData
+- Vital server calls made blocking, including get_frame() when running in pull-mode
+
 0.9.27 (2014-02-11)
 - Bug fix of status code
 - Removed forward declarations and included interface and types headers instead in gazeapi.h

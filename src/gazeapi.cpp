@@ -162,6 +162,7 @@ namespace gtl
         {
             m_heartbeat.add_observer(*this);
             m_socket.add_observer(*this);
+            m_sync_requests = 0;
         }
 
         virtual ~Engine()
@@ -190,7 +191,7 @@ namespace gtl
 
             if (success)
             {
-                m_state = AS_INITIALIZING;
+                m_state = AS_RUNNING;
 
                 memset(&m_server_proxy, 0, sizeof(ServerState));
 
@@ -204,11 +205,6 @@ namespace gtl
 
                 // retrieve current state
                 get_tracker_state();
-
-                while(m_state == AS_INITIALIZING)
-                {
-                    boost::this_thread::sleep(boost::posix_time::milliseconds(1));
-                };
             }
 
             return success;
@@ -241,7 +237,7 @@ namespace gtl
         void set_screen(Screen const & screen)
         {
             std::stringstream ss;
-            ss << "{\"category\":\"tracker\",\"request\":\"set\",\"values\":" << "{\"screenindex\":" << screen.screenindex << "\",screenresw\":" << screen.screenresw << "\",screenresh\":" << screen.screenresh << "\",screenpsyw\":" << screen.screenpsyw << "\",screenpsyh\":" << screen.screenpsyh << "}}";
+            ss << "{\"category\":\"tracker\",\"request\":\"set\",\"values\":" << "{\"screenindex\":" << screen.screenindex << ",\"screenresw\":" << screen.screenresw << ",\"screenresh\":" << screen.screenresh << ",\"screenpsyw\":" << screen.screenpsyw << ",\"screenpsyh\":" << screen.screenpsyh << "}}";
             send(ss.str());
         }
 
@@ -273,24 +269,26 @@ namespace gtl
                 << "\"screenpsyh\""
                 << "]}";
 
+            clear_sync_req(SR_TSTATE);
             send(ss.str());
+            wait_sync_req(SR_TSTATE);
         }
 
-        bool get_frame(GazeData & gaze_data)
+        void get_frame(GazeData & gaze_data)
         {
-            // If we are in push-mode, we already have the latest frame
-            if (m_server_proxy.push)
+            // If we are in push-mode, we already have the latest frame.
+            // In pull mode we have to request the data
+
+            if (!m_server_proxy.push)
             {
-                m_gaze_lock.lock();
-                gaze_data = m_gaze_data;
-                m_gaze_lock.unlock();
-            }
-            else // otherwise we have to the request data
-            {
+                clear_sync_req(SR_GAZEDATA);
                 send("{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"frame\"]}");
+                wait_sync_req(SR_GAZEDATA);
             }
 
-            return m_server_proxy.push;
+            m_gaze_lock.lock();
+            gaze_data = m_gaze_data;
+            m_gaze_lock.unlock();
         }
 
         void get_calib_result(CalibResult & calib_result) const
@@ -305,12 +303,15 @@ namespace gtl
             return m_server_proxy;
         }
 
-        void calibration_start(int const point_count)
+        bool calibration_start(int const point_count)
         {
             m_calibration_proxy.start_calibration(point_count);
             std::stringstream ss;
             ss << "{\"category\":\"calibration\",\"request\":\"start\",\"values\":{\"pointcount\":" << point_count << "}}";
+
+            clear_sync_req(SR_CSTART);
             send(ss.str());
+            return wait_sync_req(SR_CSTART);
         }
 
         void calibration_clear()
@@ -393,6 +394,7 @@ namespace gtl
         };
 
     private:
+
         void send(std::string const & message)
         {
             if (m_state != AS_STOPPED)
@@ -424,6 +426,7 @@ namespace gtl
             {
                 // TODO: Maybe throw exception with description
                 // Parser::parse_description(message.m_description, root);
+                set_sync_req(SR_ERROR);
                 return;
             }
 
@@ -489,11 +492,12 @@ namespace gtl
                         return; // Parsing failed, so just return
                     }
 
-                    if (has_gaze_data && (m_server_proxy.push || m_gaze_data != gaze_data))
+                    if (has_gaze_data)
                     {
                         m_gaze_lock.lock();
                         m_gaze_data = gaze_data;
                         m_gaze_lock.unlock();
+                        set_sync_req(SR_GAZEDATA);
 
                         // There was gaze data present, so
                         typedef Observable<IGazeListener> ObservableType;
@@ -505,11 +509,12 @@ namespace gtl
                         }
                     }
 
-                    if (has_calib_result && calib_result != m_calib_result)
+                    if (has_calib_result)
                     {
                         m_calib_lock.lock();
                         m_calib_result = calib_result;
                         m_calib_lock.unlock();
+                        set_sync_req(SR_CRESULT);
 
                         typedef Observable<ICalibrationResultListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
@@ -525,6 +530,7 @@ namespace gtl
                         m_screen_lock.lock();
                         m_screen = screen;
                         m_screen_lock.unlock();
+                        set_sync_req(SR_SCREEN);
 
                         typedef Observable<ITrackerStateListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
@@ -555,11 +561,7 @@ namespace gtl
 
                     // Update everything
                     m_server_proxy = server_state;
-
-                    if (m_state == AS_INITIALIZING)
-                    {
-                        m_state = AS_RUNNING;
-                    }
+                    set_sync_req(SR_TSTATE);
                 }
                 return;
             }
@@ -568,6 +570,8 @@ namespace gtl
             {
                 if (message.is(GAR_START))
                 {
+                    set_sync_req(SR_CSTART);
+
                     typedef Observable<ICalibrationProcessHandler> ObservableType;
                     ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
@@ -606,6 +610,7 @@ namespace gtl
                             m_calib_result = calib_result;
                             m_calib_lock.unlock();
                             m_calibration_proxy.clear();
+                            set_sync_req(SR_CRESULT);
                         }
 
                         typedef Observable<ICalibrationProcessHandler> ObservableType;
@@ -632,23 +637,58 @@ namespace gtl
             }
         }
 
+        typedef unsigned char  SyncRequest;
+
+        inline void clear_sync_req(SyncRequest sr)
+        {
+            m_sync_lock.lock();
+            m_sync_requests &= ~sr;
+            m_sync_lock.unlock();
+        }
+
+        inline void set_sync_req(SyncRequest sr)
+        {
+            m_sync_lock.lock();
+            m_sync_requests &= ~SR_ERROR;
+            m_sync_requests |= sr;
+            m_sync_lock.unlock();
+        }
+
+        inline bool has_sync_req(SyncRequest sr)
+        {
+            return (m_sync_requests & sr) == sr;
+        }
+
+        inline bool wait_sync_req(SyncRequest sr)
+        {
+            while((m_sync_requests & (sr | SR_ERROR)) == 0)
+            {
+                boost::this_thread::yield();
+            }
+            return (m_sync_requests & SR_ERROR) == 0;
+        }
+
     private:
-        enum ApiState { AS_STOPPED, AS_INITIALIZING, AS_RUNNING, AS_ISCALIBRATING };
 
-        Heartbeater                     m_heartbeat;
-        Socket                          m_socket;
-        ApiState                        m_state;
-        CalibrationProxy                m_calibration_proxy;
-        std::string                     m_port;
+        enum ApiState { AS_STOPPED, AS_RUNNING, AS_ISCALIBRATING };
+        enum { SR_ERROR = 1 << 0, SR_TSTATE = 1 << 1, SR_GAZEDATA = 1 << 2, SR_SCREEN = 1 << 3, SR_CSTART = 1 << 4, SR_CRESULT = 1 << 5 };
 
-        ServerState                     m_server_proxy;
-        GazeData                        m_gaze_data;
-        CalibResult                     m_calib_result;
-        Screen                          m_screen;
+        Heartbeater             m_heartbeat;
+        Socket                  m_socket;
+        ApiState                m_state;
+        CalibrationProxy        m_calibration_proxy;
+        std::string             m_port;
 
-        mutable boost::mutex            m_calib_lock;
-        mutable boost::mutex            m_gaze_lock;
-        mutable boost::mutex            m_screen_lock;
+        ServerState             m_server_proxy;
+        GazeData                m_gaze_data;
+        CalibResult             m_calib_result;
+        Screen                  m_screen;
+        SyncRequest             m_sync_requests;
+
+        mutable boost::mutex    m_calib_lock;
+        mutable boost::mutex    m_gaze_lock;
+        mutable boost::mutex    m_screen_lock;
+        mutable boost::mutex    m_sync_lock;
     };
 
     GazeApi::GazeApi(bool verbose)
@@ -730,9 +770,9 @@ namespace gtl
         m_engine->set_screen(screen);
     }
 
-    bool GazeApi::get_frame(GazeData & gaze_data) const
+    void GazeApi::get_frame(GazeData & gaze_data) const
     {
-        return m_engine->get_frame(gaze_data);
+        m_engine->get_frame(gaze_data);
     }
 
     void GazeApi::get_calib_result(CalibResult & calib_result) const
@@ -745,9 +785,9 @@ namespace gtl
         return m_engine->get_server_state();
     }
 
-    void GazeApi::calibration_start(int const point_count)
+    bool GazeApi::calibration_start(int const point_count)
     {
-        m_engine->calibration_start(point_count);
+        return m_engine->calibration_start(point_count);
     }
 
     void GazeApi::calibration_clear()
