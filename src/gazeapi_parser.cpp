@@ -48,7 +48,7 @@ namespace gtl
             return false;
         }
 
-        std::vector<CalibPoint> calibpoints_vector;
+        std::vector<CalibPoint> & calibpoints_vector = calib_result.calibpoints;
         calibpoints_vector.reserve(calibpoints->size());
         boost::property_tree::ptree::const_iterator it = calibpoints->begin();
         boost::property_tree::ptree::const_iterator end = calibpoints->end();

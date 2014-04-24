@@ -140,6 +140,15 @@ namespace gtl
         float screenpsyw;   ///< Screen physical width in meters
         float screenpsyh;   ///< Screen physical height in meters
 
+        void set(int index, int resw, int resh, float psyw, float psyh)
+        {
+            screenindex = index;
+            screenresw = resw;
+            screenresh = resh;
+            screenpsyw = psyw;
+            screenpsyh = psyh;
+        }
+
         bool operator == (Screen const & rhs) const
         {
             return 0 == memcmp(this, &rhs, sizeof(Screen));

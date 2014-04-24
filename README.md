@@ -58,6 +58,10 @@ The complete API specification used by the C++ SDK to communicate with the serve
 Changelog
 ----
 
+0.9.33 (2014-04-24)
+- Fixed missing calibration report targets
+- Added missing get_screen API method
+
 0.9.31 (2014-04-01)
 - Fixed wrong Json-formatted set screen request string
 - Fixed bug related to uninitialized "avg" member of GazeData

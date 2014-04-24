@@ -770,6 +770,11 @@ namespace gtl
         m_engine->set_screen(screen);
     }
 
+    void GazeApi::get_screen(Screen & screen) const
+    {
+        m_engine->get_screen(screen);
+    }
+
     void GazeApi::get_frame(GazeData & gaze_data) const
     {
         m_engine->get_frame(gaze_data);
