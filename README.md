@@ -8,7 +8,7 @@ This is the C++ reference implementation for The Eye Tribe Tracker and provides 
 
 This version is to be considered _alpha_. Feedback and bug fix submissions are welcome.
 
-Please visit http://dev.theeyetribe.com for more information.
+Please visit our [developer website](http://dev.theeyetribe.com) for more information.
 
 
 Compilation
@@ -16,13 +16,13 @@ Compilation
 
 The C++SDK comes with CMake-support making it easy to build the SDK as a library for inclusion in your own project. Alternatively you may copy the files directly into your own project. 
 
-The CMake GUI can be obtained at http://www.cmake.org.
+The CMake GUI can be obtained at the [CMake website](http://www.cmake.org).
 
 
 Dependencies
 ----
 
-In order to provide non-C++11 portability and network support, the C++ SDK utilizes a variety of Boost libraries. The lowest boost version version tested is 1.53, but older versions may work. For information on obtaining and installing a recent version of Boost, please visit http://www.boost.org.
+In order to provide non-C++11 portability and network support, the C++ SDK utilizes a variety of [Boost libraries](http://www.boost.org). The lowest boost version version tested is 1.53, but older versions may work. For information on obtaining and installing a recent version of Boost, please the [Boost website](http://www.boost.org).
 
 Boost is meant to be built from source and does include instructions on how to accomplish this. However, prebuilt binaries can be downloaded as well. CMake may encounter issues with prebuilt versions of Boost, and thus we advise users to build Boost manually.
 
@@ -30,7 +30,7 @@ Boost is meant to be built from source and does include instructions on how to a
 Build
 ----
 
-1. Install boost 
+1. Install [Boost libraries](http://www.boost.org) 
 2. Use CMake GUI to generate project files 
 3. Build the C++ SDK library with your preferred compiler
 
@@ -52,11 +52,13 @@ There are currently no samples available for the C++ SDK, but they will be added
 API Reference
 ----
 
-The complete API specification used by the C++ SDK to communicate with the server is available on http://dev.theeyetribe.com/api/
+The complete API specification used by the C++ SDK to communicate with the server is available on our [developer website](http://dev.theeyetribe.com/api/).
 
 
 Changelog
 ----
+0.9.36 (2014-07-17)
+- Updated license
 
 0.9.33 (2014-04-24)
 - Fixed missing calibration report targets
