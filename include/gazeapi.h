@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2013-present, The Eye Tribe. 
+ * Copyright (c) 2013-present, The Eye Tribe.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in
- * the LICENSE file in the root directory of this source tree. 
+ * the LICENSE file in the root directory of this source tree.
  *
  */
 
@@ -27,12 +27,12 @@ namespace gtl
     {
     public:
         /** GazeApi constructor.
-         * Creates an instance of the GazeApi that can be used to connect to a server. 
+         * Creates an instance of the GazeApi that can be used to connect to a server.
          *
-         * \param[in] verbose Whether to output all JSON-messages recieved and sent on the socket. 
+         * \param[in] verbose Whether to output all JSON-messages recieved and sent on the socket.
          * When enabling verbose output, messages are output using std::cout.
          */
-        explicit GazeApi(bool verbose = false);
+        explicit GazeApi( bool verbose = false );
         ~GazeApi();
 
         /** Add an IGazeListener to the GazeApi.
@@ -40,56 +40,70 @@ namespace gtl
          * \param[in] listener The IGazeListener listener to be added.
          * \sa remove_listener(IGazeListener & listener).
          */
-        void add_listener(IGazeListener & listener);
+        void add_listener( IGazeListener & listener );
 
         /** Remove an IGazeListener from the GazeApi.
          *
          * \param[in] listener The IGazeListener listener to be removed.
          * \sa add_listener(IGazeListener & listener).
          */
-        void remove_listener(IGazeListener & listener);
+        void remove_listener( IGazeListener & listener );
 
         /** Add an ICalibrationResultListener to the GazeApi.
          *
          * \param[in] listener The ICalibrationResultListener listener to be added.
          * \sa remove_listener(ICalibrationResultListener & listener).
          */
-        void add_listener(ICalibrationResultListener & listener);
+        void add_listener( ICalibrationResultListener & listener );
 
         /** Remove an ICalibrationResultListener from the GazeApi.
          *
          * \param[in] listener The ICalibrationResultListener listener to be removed.
          * \sa add_listener(ICalibrationResultListener & listener).
          */
-        void remove_listener(ICalibrationResultListener & listener);
+        void remove_listener( ICalibrationResultListener & listener );
+
+        /** Add an IConnectionStateListener to the GazeApi.
+        *
+        * \param[in] listener The IConnectionStateListener listener to be added.
+        * \sa remove_listener(IConnectionStateListener & listener).
+        */
+        void add_listener( IConnectionStateListener & listener );
+
+        /** Remove an IConnectionStateListener from the GazeApi.
+        *
+        * \param[in] listener The IConnectionStateListener listener to be removed.
+        * \sa add_listener(IConnectionStateListener & listener).
+        */
+        void remove_listener( IConnectionStateListener & listener );
 
         /** Add an ITrackerStateListener to the GazeApi.
          *
          * \param[in] listener The ITrackerStateListener listener to be added.
          * \sa remove_listener(ITrackerStateListener & listener).
          */
-        void add_listener(ITrackerStateListener & listener);
+        void add_listener( ITrackerStateListener & listener );
 
         /** Remove an ITrackerStateListener from the GazeApi.
          *
          * \param[in] listener The ITrackerStateListener listener to be removed.
          * \sa add_listener(ITrackerStateListener & listener).
          */
-        void remove_listener(ITrackerStateListener & listener);
+        void remove_listener( ITrackerStateListener & listener );
 
         /** Add an ICalibrationProcessHandler to the GazeApi.
          *
          * \param[in] listener The ICalibrationProcessHandler listener to be added.
          * \sa remove_listener(ICalibrationProcessHandler & listener).
          */
-        void add_listener(ICalibrationProcessHandler & listener);
+        void add_listener( ICalibrationProcessHandler & listener );
 
         /** Remove an ICalibrationProcessHandler from the GazeApi.
          *
          * \param[in] listener The ICalibrationProcessHandler listener to be removed.
          * \sa add_listener(ICalibrationProcessHandler & listener).
          */
-        void remove_listener(ICalibrationProcessHandler & listener);
+        void remove_listener( ICalibrationProcessHandler & listener );
 
         /** Query whether the client is connected the the server.
          *
@@ -102,7 +116,7 @@ namespace gtl
          * \param[in] push_mode connect using push mode? otherwice pull mode is activated.
          * \return bool True if connected, false if connection failed.
          */
-        bool connect(bool push_mode);
+        bool connect( bool push_mode );
 
         /** Connect to the server via specified port.
          *
@@ -110,7 +124,7 @@ namespace gtl
          * \param[in] port port number to connect to server on.
          * \return bool True if connected, false if connection failed.
          */
-        bool connect(bool push_mode, unsigned short port);
+        bool connect( bool push_mode, unsigned short port );
 
         /** Disconnect from server. */
         void disconnect();
@@ -119,37 +133,37 @@ namespace gtl
          *
          * \param[in] enable True if enable, false if disable.
          */
-        void set_push(bool const enable);
+        void set_push( bool const enable );
 
         /** Set screen parameters.
          *
          * \param[in] screen the Screen parameters to be set.
          */
-        void set_screen(Screen const & screen);
+        void set_screen( Screen const & screen );
 
         /** Get current used screen parameters.
          *
          * \param[out] screen the Screen parameters to be retrieved.
          */
-        void get_screen(Screen & screen) const;
+        void get_screen( Screen & screen ) const;
 
         /** Get current GazeData
          *
          * Attempts to retrieve the current valid GazeData. If push-mode is enabled gaze_data is filled with the latest valid GazeData.
          * If push-mode is disabled the method requests the latest GazeData from the server and fills out gaze_data when it is available.
-         * 
+         *
          * In pull-mode this is a blocking call. The method does not terminate before a new GazeData has been delivered.
          * In push-mode the GazeApi will fire an IGazeListener::on_gaze_data(gtl::GazeData const & gaze_data) containing the latest GazeData.
-         * 
+         *
          * \param[out] gaze_data valid GazeData if push-mode enabled, invalid otherwise.
          */
-        void get_frame(GazeData & gaze_data) const;
+        void get_frame( GazeData & gaze_data ) const;
 
-        /** Get current valid calibration 
+        /** Get current valid calibration
          *
          * \param[out] calib_result latest valid calibration result.
          */
-        void get_calib_result(CalibResult & calib_result) const;
+        void get_calib_result( CalibResult & calib_result ) const;
 
         /** Read the current server state.
          *
@@ -162,7 +176,7 @@ namespace gtl
          * \param[in] point_count The number of points to use for calibration.
          * \returns indication of the request processed okay.
          */
-        bool calibration_start(int const point_count);
+        bool calibration_start( int const point_count );
 
         /** Clear the current server calibration .
          *
@@ -181,17 +195,17 @@ namespace gtl
          * \param[in] x x-coordinate of calibration point.
          * \param[in] y y-coordinate of calibration point.
          * \sa calibration_point_end.
-        */
-        void calibration_point_start(int const x, int const y);
+         */
+        void calibration_point_start( int const x, int const y );
 
         /** End current calibration point.
          * \sa calibration_point_start(int const x, int const y).
-        */
+         */
         void calibration_point_end();
 
     private:
-        GazeApi(GazeApi const & other);
-        GazeApi & operator = (GazeApi const & other);
+        GazeApi( GazeApi const & other );
+        GazeApi & operator = ( GazeApi const & other );
 
         class Engine;
 

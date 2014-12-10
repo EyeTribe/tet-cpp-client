@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2013-present, The Eye Tribe. 
+ * Copyright (c) 2013-present, The Eye Tribe.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in
- * the LICENSE file in the root directory of this source tree. 
+ * the LICENSE file in the root directory of this source tree.
  *
  */
 
@@ -33,7 +33,7 @@ namespace gtl
         GAR_ABORT,
         GAR_CLEAR,
         GAR_POINTSTART,
-        GAR_POINTEND
+        GAR_POINTEND,
     };
 
     enum GazeApiStatusCode
@@ -64,11 +64,11 @@ namespace gtl
     {
         enum
         {
-            GD_STATE_TRACKING_GAZE        = 1 << 0,
-            GD_STATE_TRACKING_EYES        = 1 << 1,
-            GD_STATE_TRACKING_PRESENCE    = 1 << 2,
-            GD_STATE_TRACKING_FAIL        = 1 << 3,
-            GD_STATE_TRACKING_LOST        = 1 << 4
+            GD_STATE_TRACKING_GAZE      = 1 << 0,
+            GD_STATE_TRACKING_EYES      = 1 << 1,
+            GD_STATE_TRACKING_PRESENCE  = 1 << 2,
+            GD_STATE_TRACKING_FAIL      = 1 << 3,
+            GD_STATE_TRACKING_LOST      = 1 << 4
         };
 
         int time; ///< timestamp
@@ -79,14 +79,14 @@ namespace gtl
         Eye lefteye; ///< data for left eye
         Eye righteye; ///< data for right eye
 
-        bool operator == (GazeData const & rhs) const
+        bool operator == ( GazeData const & rhs ) const
         {
-            return 0 == memcmp(this, &rhs, sizeof(GazeData));
+            return 0 == memcmp( this, &rhs, sizeof( GazeData ) );
         }
 
-        bool operator != (GazeData const & rhs) const
+        bool operator != ( GazeData const & rhs ) const
         {
-            return 0 != memcmp(this, &rhs, sizeof(GazeData));
+            return 0 != memcmp( this, &rhs, sizeof( GazeData ) );
         }
     };
 
@@ -96,12 +96,12 @@ namespace gtl
         Point2D cp; ///< coordinates in pixels
         Point2D mecp; ///< mean estimated coords in pixels
         struct { float ad; float adl; float adr; } acd; ///< accuracy in degrees
-        struct { float mep; float mepl; float mepr; } mepix ; ///< mean error in pixels
+        struct { float mep; float mepl; float mepr; } mepix; ///< mean error in pixels
         struct { float asd; float asdl; float asdr; } asdp; ///< average std deviation in
 
-        bool operator == (CalibPoint const & rhs) const
+        bool operator == ( CalibPoint const & rhs ) const
         {
-            return 0 == memcmp(this, &rhs, sizeof(CalibPoint));
+            return 0 == memcmp( this, &rhs, sizeof( CalibPoint ) );
         }
     };
 
@@ -113,7 +113,7 @@ namespace gtl
         float degr;  ///< average error in degs, right eye
         std::vector<CalibPoint> calibpoints;
 
-        bool operator == (CalibResult const & rhs) const
+        bool operator == ( CalibResult const & rhs ) const
         {
             return result == rhs.result &&
                 deg == rhs.deg &&
@@ -122,7 +122,7 @@ namespace gtl
                 calibpoints == rhs.calibpoints;
         }
 
-        bool operator != (CalibResult const & rhs) const
+        bool operator != ( CalibResult const & rhs ) const
         {
             return result != rhs.result ||
                 deg != rhs.deg ||
@@ -149,7 +149,7 @@ namespace gtl
         float screenpsyw;   ///< Screen physical width in meters
         float screenpsyh;   ///< Screen physical height in meters
 
-        void set(int index, int resw, int resh, float psyw, float psyh)
+        void set( int index, int resw, int resh, float psyw, float psyh )
         {
             screenindex = index;
             screenresw = resw;
@@ -158,14 +158,14 @@ namespace gtl
             screenpsyh = psyh;
         }
 
-        bool operator == (Screen const & rhs) const
+        bool operator == ( Screen const & rhs ) const
         {
-            return 0 == memcmp(this, &rhs, sizeof(Screen));
+            return 0 == memcmp( this, &rhs, sizeof( Screen ) );
         }
 
-        bool operator != (Screen const & rhs) const
+        bool operator != ( Screen const & rhs ) const
         {
-            return 0 != memcmp(this, &rhs, sizeof(Screen));
+            return 0 != memcmp( this, &rhs, sizeof( Screen ) );
         }
     };
 

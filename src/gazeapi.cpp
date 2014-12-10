@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2013-present, The Eye Tribe. 
+ * Copyright (c) 2013-present, The Eye Tribe.
  * All rights reserved.
  *
  * This source code is licensed under the BSD-style license found in
- * the LICENSE file in the root directory of this source tree. 
+ * the LICENSE file in the root directory of this source tree.
  *
  */
 
@@ -39,12 +39,12 @@ namespace gtl
     {
     public:
         CalibrationProxy()
-            : m_point_count(0)
-            , m_processed_points(0)
-            , m_is_calibrating(false)
+            : m_point_count( 0 )
+            , m_processed_points( 0 )
+            , m_is_calibrating( false )
         {}
 
-        void start_calibration(size_t const point_count)
+        void start_calibration( size_t const point_count )
         {
             m_point_count = point_count;
             m_is_calibrating = true;
@@ -75,7 +75,7 @@ namespace gtl
 
         void clear()
         {
-            m_point_count = 0 ;
+            m_point_count = 0;
             m_processed_points = 0;
             m_is_calibrating = false;
         }
@@ -94,12 +94,12 @@ namespace gtl
     };
 
     // Responsible for sending heart beats once client has connected
-    class Heartbeater : public Observable<IHeartbeatListener>
+    class Heartbeater : public Observable < IHeartbeatListener >
     {
     public:
         Heartbeater()
-            : m_do_loop(false)
-            , m_heartbeat_interval(1000)
+            : m_do_loop( false )
+            , m_heartbeat_interval( 1000 )
         {}
 
         ~Heartbeater()
@@ -107,14 +107,15 @@ namespace gtl
             m_thread.join();
         }
 
-        void set_interval(const int heartbeat_interval)
+        void set_interval( const int heartbeat_interval )
         {
             m_heartbeat_interval = heartbeat_interval;
         }
 
         void start()
         {
-            m_thread = boost::thread(boost::bind(&Heartbeater::run, this));
+            stop();
+            m_thread = boost::thread( boost::bind( &Heartbeater::run, this ) );
         }
 
         void stop()
@@ -128,16 +129,16 @@ namespace gtl
         {
             m_do_loop = true;
 
-            while (m_do_loop)
+            while( m_do_loop )
             {
                 Observable<IHeartbeatListener>::ObserverVector const & observers = get_observers();
 
-                for (size_t i = 0; i < observers.size(); ++i)
+                for( size_t i = 0; i < observers.size(); ++i )
                 {
-                    observers[i]->on_heartbeat();
+                    observers[ i ]->on_heartbeat();
                 }
 
-                boost::this_thread::sleep(boost::posix_time::milliseconds(m_heartbeat_interval));
+                boost::this_thread::sleep( boost::posix_time::milliseconds( m_heartbeat_interval ) );
             }
         }
 
@@ -154,6 +155,7 @@ namespace gtl
         , Observable<ICalibrationResultListener>
         , Observable<ITrackerStateListener>
         , Observable<ICalibrationProcessHandler>
+        , Observable<IConnectionStateListener>
     {
     public:
         using Observable<IGazeListener>::add_observer;
@@ -164,21 +166,23 @@ namespace gtl
         using Observable<ITrackerStateListener>::remove_observer;
         using Observable<ICalibrationProcessHandler>::add_observer;
         using Observable<ICalibrationProcessHandler>::remove_observer;
+        using Observable<IConnectionStateListener>::add_observer;
+        using Observable<IConnectionStateListener>::remove_observer;
 
-        Engine(bool verbose)
-            : m_socket(verbose)
-            , m_state(AS_STOPPED)
+        Engine( bool verbose )
+            : m_socket( verbose )
+            , m_state( AS_STOPPED )
         {
-            m_heartbeat.add_observer(*this);
-            m_socket.add_observer(*this);
+            m_heartbeat.add_observer( *this );
+            m_socket.add_observer( *this );
             m_sync_requests = 0;
         }
 
         virtual ~Engine()
         {
-            m_heartbeat.remove_observer(*this);
-            m_socket.remove_observer(*this);
             disconnect();
+            m_heartbeat.remove_observer( *this );
+            m_socket.remove_observer( *this );
         }
 
         bool is_running() const
@@ -187,30 +191,40 @@ namespace gtl
         }
 
         // GazeApi support
-        bool connect(bool push_mode, std::string const & port)
+        bool connect( bool push_mode, std::string const & port )
         {
-            if (AS_STOPPED != m_state)
+            if( AS_STOPPED != m_state )
             {
                 return false;
             }
 
             m_port = port;
+            m_sync_requests = 0;
 
-            bool const success = m_socket.connect("127.0.0.1", m_port);
+            bool const success = m_socket.connect( "127.0.0.1", m_port );
 
-            if (success)
+            if( success )
             {
                 m_state = AS_RUNNING;
 
-                memset(&m_server_proxy, 0, sizeof(ServerState));
+                memset( &m_server_proxy, 0, sizeof( ServerState ) );
+                memset( &m_gaze_data, 0, sizeof( GazeData ) );
+                memset( &m_screen, 0, sizeof( Screen ) );
+                m_calib_result.clear();
 
                 m_heartbeat.start();
 
                 // Set version 1
-                set_version(1);
+                set_version( 1 );
 
                 // Set push or pull mode
-                set_push(push_mode);
+                set_push( push_mode );
+
+                Observable<IConnectionStateListener>::ObserverVector const & observers = Observable<IConnectionStateListener>::get_observers();
+                for( size_t i = 0; i < observers.size(); ++i )
+                {
+                    observers[ i ]->on_connection_state_changed( true );
+                }
 
                 // retrieve current state
                 get_tracker_state();
@@ -221,36 +235,36 @@ namespace gtl
 
         void disconnect()
         {
-            if (m_state != AS_STOPPED)
+            if( m_state != AS_STOPPED )
             {
+                m_state = AS_STOPPED;
                 m_heartbeat.stop();
                 m_socket.disconnect();
-                m_state = AS_STOPPED;
             }
         }
 
-        void set_version(size_t const version)
+        void set_version( size_t const version )
         {
             std::stringstream ss;
             ss << "{\"category\":\"tracker\",\"request\":\"set\",\"values\":" << "{\"version\":" << version << "}}";
-            send(ss.str());
+            send( ss.str() );
         }
 
-        void set_push(bool const enable)
+        void set_push( bool const enable )
         {
             std::stringstream ss;
-            ss << "{\"category\":\"tracker\",\"request\":\"set\",\"values\":" << "{\"push\":" << (enable ? "true" : "false") <<  "}}";
-            send(ss.str());
+            ss << "{\"category\":\"tracker\",\"request\":\"set\",\"values\":" << "{\"push\":" << ( enable ? "true" : "false" ) << "}}";
+            send( ss.str() );
         }
 
-        void set_screen(Screen const & screen)
+        void set_screen( Screen const & screen )
         {
             std::stringstream ss;
             ss << "{\"category\":\"tracker\",\"request\":\"set\",\"values\":" << "{\"screenindex\":" << screen.screenindex << ",\"screenresw\":" << screen.screenresw << ",\"screenresh\":" << screen.screenresh << ",\"screenpsyw\":" << screen.screenpsyw << ",\"screenpsyh\":" << screen.screenpsyh << "}}";
-            send(ss.str());
+            send( ss.str() );
         }
 
-        void get_screen(Screen & screen) const
+        void get_screen( Screen & screen ) const
         {
             m_screen_lock.lock();
             screen = m_screen;
@@ -278,21 +292,21 @@ namespace gtl
                 << "\"screenpsyh\""
                 << "]}";
 
-            clear_sync_req(SR_TSTATE);
-            send(ss.str());
-            wait_sync_req(SR_TSTATE);
+            clear_sync_req( SR_TSTATE );
+            send( ss.str() );
+            wait_sync_req( SR_TSTATE );
         }
 
-        void get_frame(GazeData & gaze_data)
+        void get_frame( GazeData & gaze_data )
         {
             // If we are in push-mode, we already have the latest frame.
             // In pull mode we have to request the data
 
-            if (!m_server_proxy.push)
+            if( !m_server_proxy.push )
             {
-                clear_sync_req(SR_GAZEDATA);
-                send("{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"frame\"]}");
-                wait_sync_req(SR_GAZEDATA);
+                clear_sync_req( SR_GAZEDATA );
+                send( "{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"frame\"]}" );
+                wait_sync_req( SR_GAZEDATA );
             }
 
             m_gaze_lock.lock();
@@ -300,7 +314,7 @@ namespace gtl
             m_gaze_lock.unlock();
         }
 
-        void get_calib_result(CalibResult & calib_result) const
+        void get_calib_result( CalibResult & calib_result ) const
         {
             m_calib_lock.lock();
             calib_result = m_calib_result;
@@ -312,46 +326,46 @@ namespace gtl
             return m_server_proxy;
         }
 
-        bool calibration_start(int const point_count)
+        bool calibration_start( int const point_count )
         {
-            m_calibration_proxy.start_calibration(point_count);
+            m_calibration_proxy.start_calibration( point_count );
             std::stringstream ss;
             ss << "{\"category\":\"calibration\",\"request\":\"start\",\"values\":{\"pointcount\":" << point_count << "}}";
 
-            clear_sync_req(SR_CSTART);
-            send(ss.str());
-            return wait_sync_req(SR_CSTART);
+            clear_sync_req( SR_CSTART );
+            send( ss.str() );
+            return wait_sync_req( SR_CSTART );
         }
 
         void calibration_clear()
         {
-            send("{\"category\":\"calibration\",\"request\":\"clear\"}");
+            send( "{\"category\":\"calibration\",\"request\":\"clear\"}" );
         }
 
         void calibration_abort()
         {
-            send("{\"category\":\"calibration\",\"request\":\"abort\"}");
+            send( "{\"category\":\"calibration\",\"request\":\"abort\"}" );
         }
 
-        void calibration_point_start(int const x, int const y)
+        void calibration_point_start( int const x, int const y )
         {
             std::stringstream ss;
             ss << "{\"category\":\"calibration\",\"request\":\"pointstart\",\"values\":{\"x\":" << x << ",\"y\":" << y << "}}";
-            send(ss.str());
+            send( ss.str() );
         }
 
         void calibration_point_end()
         {
-            send("{\"category\":\"calibration\",\"request\":\"pointend\"}");
+            send( "{\"category\":\"calibration\",\"request\":\"pointend\"}" );
         }
 
-        void on_message(std::string const & message)
+        void on_message( std::string const & message )
         {
             try
             {
-                parse(message);
+                parse( message );
             }
-            catch (std::exception const & e)
+            catch( std::exception const & e )
             {
                 e.what();
             }
@@ -360,12 +374,18 @@ namespace gtl
         void on_disconnected()
         {
             disconnect();
+
+            Observable<IConnectionStateListener>::ObserverVector const & observers = Observable<IConnectionStateListener>::get_observers();
+            for( size_t i = 0; i < observers.size(); ++i )
+            {
+                observers[ i ]->on_connection_state_changed( false );
+            }
             // todo: try to reconnect here
         }
 
         void on_heartbeat()
         {
-            send("{\"category\":\"heartbeat\"}");
+            send( "{\"category\":\"heartbeat\"}" );
         }
 
     private:
@@ -373,27 +393,27 @@ namespace gtl
         struct Message
         {
             Message()
-                : m_category(GAC_UNKNOWN), m_request(GAR_UNKNOWN), m_statuscode(GASC_ERROR)
+                : m_category( GAC_UNKNOWN ), m_request( GAR_UNKNOWN ), m_statuscode( GASC_ERROR )
             {}
 
-            bool is (GazeApiCategory const & category) const
+            bool is( GazeApiCategory const & category ) const
             {
                 return m_category == category;
             }
 
-            bool is (GazeApiRequest const & request) const
+            bool is( GazeApiRequest const & request ) const
             {
                 return m_request == request;
             }
 
-            bool is (GazeApiStatusCode const & statuscode) const
+            bool is( GazeApiStatusCode const & statuscode ) const
             {
                 return m_statuscode == statuscode;
             }
 
             bool is_notification() const
             {
-                return is(GASC_CALIBRATION_CHANGE) || is(GASC_DISPLAY_CHANGE) || is(GASC_TRACKER_STATE_CHANGE);
+                return is( GASC_CALIBRATION_CHANGE ) || is( GASC_DISPLAY_CHANGE ) || is( GASC_TRACKER_STATE_CHANGE );
             }
 
             GazeApiCategory m_category;
@@ -404,62 +424,62 @@ namespace gtl
 
     private:
 
-        void send(std::string const & message)
+        void send( std::string const & message )
         {
-            if (m_state != AS_STOPPED)
+            if( m_state != AS_STOPPED )
             {
-                m_socket.send(message);
+                m_socket.send( message );
             }
         }
 
-        void parse (std::string const & json_message)
+        void parse( std::string const & json_message )
         {
-            std::stringstream ss(json_message);
+            std::stringstream ss( json_message );
             boost::property_tree::ptree root;
-            boost::property_tree::read_json(ss, root);
+            boost::property_tree::read_json( ss, root );
 
             Message message;
 
-            if (!Parser::parse_category(message.m_category, root))
+            if( !Parser::parse_category( message.m_category, root ) )
             {
                 return; // Broken message, so just ignore
             }
 
-            if (!Parser::parse_status_code(message.m_statuscode, root))
+            if( !Parser::parse_status_code( message.m_statuscode, root ) )
             {
                 return; // Broken status code, so just ignore
             }
 
             // If message is broken or it's not a notification
-            if (message.is(GASC_ERROR) && !message.is_notification())
+            if( message.is( GASC_ERROR ) && !message.is_notification() )
             {
                 // TODO: Maybe throw exception with description
                 // Parser::parse_description(message.m_description, root);
-                set_sync_req(SR_ERROR);
+                set_sync_req( SR_ERROR );
                 return;
             }
 
             // If message is notification we do not care about the request-part
-            if (message.is_notification())
+            if( message.is_notification() )
             {
-                switch(message.m_statuscode)
+                switch( message.m_statuscode )
                 {
-                case GASC_CALIBRATION_CHANGE:
+                    case GASC_CALIBRATION_CHANGE:
                     {
                         // initiate request for calibration data
-                        send("{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"calibresult\",\"iscalibrated\",\"iscalibrating\"]}");
+                        send( "{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"calibresult\",\"iscalibrated\",\"iscalibrating\"]}" );
                         break;
                     }
-                case GASC_DISPLAY_CHANGE:
+                    case GASC_DISPLAY_CHANGE:
                     {
                         // initiate request for display index
-                        send("{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"screenindex\",\"screenresw\",\"screenresh\",\"screenpsyw\",\"screenpsyh\"]}");
+                        send( "{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"screenindex\",\"screenresw\",\"screenresh\",\"screenpsyw\",\"screenpsyh\"]}" );
                         break;
                     }
-                case GASC_TRACKER_STATE_CHANGE:
+                    case GASC_TRACKER_STATE_CHANGE:
                     {
                         // initiate request for tracker state
-                        send("{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"trackerstate\"]}");
+                        send( "{\"category\":\"tracker\",\"request\":\"get\",\"values\":[\"trackerstate\"]}" );
                         break;
                     }
                 };
@@ -467,24 +487,24 @@ namespace gtl
             }
 
             // If message is a heartbeat just ignore
-            if (message.is(GAC_HEARTBEAT))
+            if( message.is( GAC_HEARTBEAT ) )
             {
                 return; // Heartbeat reply, so just ignore
             }
 
             // If message is NOT a notification we need to parse the request as well
-            if(!message.is_notification() && !Parser::parse_request(message.m_request, root))
+            if( !message.is_notification() && !Parser::parse_request( message.m_request, root ) )
             {
                 return; // Broken request, so just ignore
             }
 
-            if (message.is(GAC_TRACKER))
+            if( message.is( GAC_TRACKER ) )
             {
-                if (message.is(GAR_SET))
+                if( message.is( GAR_SET ) )
                 {
                     return; // Everything went fine so we just return;
                 }
-                else if (message.is(GAR_GET))
+                else if( message.is( GAR_GET ) )
                 {
                     // Here we requested data, so we must process whatever is returned in "values"
                     bool has_gaze_data = false;
@@ -496,101 +516,101 @@ namespace gtl
                     ServerState server_state = m_server_proxy;
                     Screen screen = m_screen;
 
-                    if (!Parser::parse_server_state(server_state, gaze_data, calib_result, screen, root, has_gaze_data, has_calib_result))
+                    if( !Parser::parse_server_state( server_state, gaze_data, calib_result, screen, root, has_gaze_data, has_calib_result ) )
                     {
                         return; // Parsing failed, so just return
                     }
 
-                    if (has_gaze_data)
+                    if( has_gaze_data )
                     {
                         m_gaze_lock.lock();
                         m_gaze_data = gaze_data;
                         m_gaze_lock.unlock();
-                        set_sync_req(SR_GAZEDATA);
+                        set_sync_req( SR_GAZEDATA );
 
                         // There was gaze data present, so
                         typedef Observable<IGazeListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                        for (size_t i = 0; i < observers.size(); ++i)
+                        for( size_t i = 0; i < observers.size(); ++i )
                         {
-                            observers[i]->on_gaze_data(m_gaze_data);
+                            observers[ i ]->on_gaze_data( m_gaze_data );
                         }
                     }
 
-                    if (has_calib_result)
+                    if( has_calib_result )
                     {
                         m_calib_lock.lock();
                         m_calib_result = calib_result;
                         m_calib_lock.unlock();
-                        set_sync_req(SR_CRESULT);
+                        set_sync_req( SR_CRESULT );
 
                         typedef Observable<ICalibrationResultListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                        for (size_t i = 0; i < observers.size(); ++i)
+                        for( size_t i = 0; i < observers.size(); ++i )
                         {
-                            observers[i]-> on_calibration_changed(m_calib_result.result, m_calib_result);
+                            observers[ i ]->on_calibration_changed( m_calib_result.result, m_calib_result );
                         }
                     }
 
-                    if (screen != m_screen)
+                    if( screen != m_screen )
                     {
                         m_screen_lock.lock();
                         m_screen = screen;
                         m_screen_lock.unlock();
-                        set_sync_req(SR_SCREEN);
+                        set_sync_req( SR_SCREEN );
 
                         typedef Observable<ITrackerStateListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                        for (size_t i = 0; i < observers.size(); ++i)
+                        for( size_t i = 0; i < observers.size(); ++i )
                         {
-                            observers[i]->on_screen_state_changed(m_screen);
+                            observers[ i ]->on_screen_state_changed( m_screen );
                         }
                     }
 
-                    if (server_state.trackerstate != m_server_proxy.trackerstate)
+                    if( server_state.trackerstate != m_server_proxy.trackerstate )
                     {
                         m_server_proxy.trackerstate = server_state.trackerstate;
 
                         typedef Observable<ITrackerStateListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                        for (size_t i = 0; i < observers.size(); ++i)
+                        for( size_t i = 0; i < observers.size(); ++i )
                         {
-                            observers[i]->on_tracker_connection_changed(m_server_proxy.trackerstate);
+                            observers[ i ]->on_tracker_connection_changed( m_server_proxy.trackerstate );
                         }
                     }
 
-                    if (server_state.heartbeatinterval != 0)
+                    if( server_state.heartbeatinterval != 0 )
                     {
-                        m_heartbeat.set_interval(server_state.heartbeatinterval);
+                        m_heartbeat.set_interval( server_state.heartbeatinterval );
                     }
 
                     // Update everything
                     m_server_proxy = server_state;
-                    set_sync_req(SR_TSTATE);
+                    set_sync_req( SR_TSTATE );
                 }
                 return;
             }
 
-            if (message.is(GAC_CALIBRATION))
+            if( message.is( GAC_CALIBRATION ) )
             {
-                if (message.is(GAR_START))
+                if( message.is( GAR_START ) )
                 {
-                    set_sync_req(SR_CSTART);
+                    set_sync_req( SR_CSTART );
 
                     typedef Observable<ICalibrationProcessHandler> ObservableType;
                     ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                    for (size_t i = 0; i < observers.size(); ++i)
+                    for( size_t i = 0; i < observers.size(); ++i )
                     {
-                        observers[i]->on_calibration_started();
+                        observers[ i ]->on_calibration_started();
                     }
                 }
 
-                if (message.is(GAR_POINTEND))
+                if( message.is( GAR_POINTEND ) )
                 {
                     m_calibration_proxy.point_end();
 
@@ -599,63 +619,73 @@ namespace gtl
                     typedef Observable<ICalibrationProcessHandler> ObservableType;
                     ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                    for (size_t i = 0; i < observers.size(); ++i)
+                    for( size_t i = 0; i < observers.size(); ++i )
                     {
-                        observers[i]->on_calibration_progress(progress);
+                        observers[ i ]->on_calibration_progress( progress );
                     }
 
                     CalibResult calib_result;
                     bool has_calib_result;
-                    if (!Parser::parse_calib_result(calib_result, root, has_calib_result))
+                    if( !Parser::parse_calib_result( calib_result, root, has_calib_result ) )
                     {
                         return;
                     }
 
-                    if (has_calib_result)
+                    if( has_calib_result )
                     {
-                        if (calib_result.result)
+                        if( calib_result.result )
                         {
                             m_calib_lock.lock();
                             m_calib_result = calib_result;
                             m_calib_lock.unlock();
+
+                            typedef Observable<ICalibrationResultListener> ObservableType;
+                            ObservableType::ObserverVector const & observers = ObservableType::get_observers();
+
+                            for (size_t i = 0; i < observers.size(); ++i)
+                            {
+                                observers[i]->on_calibration_changed(m_calib_result.result, m_calib_result);
+                            }
+
                             m_calibration_proxy.clear();
-                            set_sync_req(SR_CRESULT);
+                            set_sync_req( SR_CRESULT );
                         }
 
                         typedef Observable<ICalibrationProcessHandler> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
-                        for (size_t i = 0; i < observers.size(); ++i)
+                        for( size_t i = 0; i < observers.size(); ++i )
                         {
-                            observers[i]->on_calibration_result(calib_result.result, calib_result);
+                            observers[ i ]->on_calibration_result( calib_result.result, calib_result );
                         }
                     }
                 }
 
-                if (message.is(GAR_ABORT))
+                if( message.is( GAR_ABORT ) )
                 {
                     m_calibration_proxy.clear();
                 }
 
-                if (message.is(GAR_CLEAR))
+                if( message.is( GAR_CLEAR ) )
                 {
                     m_calib_lock.lock();
                     m_calib_result.clear();
                     m_calib_lock.unlock();
                 }
+
             }
         }
 
         typedef unsigned char  SyncRequest;
 
-        inline void clear_sync_req(SyncRequest sr)
+        inline void clear_sync_req( SyncRequest sr )
         {
             m_sync_lock.lock();
             m_sync_requests &= ~sr;
             m_sync_lock.unlock();
         }
 
-        inline void set_sync_req(SyncRequest sr)
+        inline void set_sync_req( SyncRequest sr )
         {
             m_sync_lock.lock();
             m_sync_requests &= ~SR_ERROR;
@@ -663,24 +693,30 @@ namespace gtl
             m_sync_lock.unlock();
         }
 
-        inline bool has_sync_req(SyncRequest sr)
+        inline bool has_sync_req( SyncRequest sr )
         {
-            return (m_sync_requests & sr) == sr;
+            return ( m_sync_requests & sr ) == sr;
         }
 
-        inline bool wait_sync_req(SyncRequest sr)
+        inline bool wait_sync_req( SyncRequest sr )
         {
-            while((m_sync_requests & (sr | SR_ERROR)) == 0)
+            while( ( m_sync_requests & ( sr | SR_ERROR ) ) == 0 )
             {
                 boost::this_thread::yield();
             }
-            return (m_sync_requests & SR_ERROR) == 0;
+            return ( m_sync_requests & SR_ERROR ) == 0;
         }
 
     private:
 
         enum ApiState { AS_STOPPED, AS_RUNNING, AS_ISCALIBRATING };
-        enum { SR_ERROR = 1 << 0, SR_TSTATE = 1 << 1, SR_GAZEDATA = 1 << 2, SR_SCREEN = 1 << 3, SR_CSTART = 1 << 4, SR_CRESULT = 1 << 5 };
+        enum { SR_ERROR     = 1 << 0,
+            SR_TSTATE    = 1 << 1,
+            SR_GAZEDATA  = 1 << 2,
+            SR_SCREEN    = 1 << 3,
+            SR_CSTART    = 1 << 4,
+            SR_CRESULT   = 1 << 5,
+        };
 
         Heartbeater             m_heartbeat;
         Socket                  m_socket;
@@ -700,51 +736,56 @@ namespace gtl
         mutable boost::mutex    m_sync_lock;
     };
 
-    GazeApi::GazeApi(bool verbose)
-        : m_engine(new Engine(verbose))
+    GazeApi::GazeApi( bool verbose )
+        : m_engine( new Engine( verbose ) )
     {}
 
     GazeApi::~GazeApi()
     {}
 
-    void GazeApi::add_listener(IGazeListener & listener)
+    void GazeApi::add_listener( IGazeListener & listener )
     {
-        m_engine->add_observer(listener);
+        m_engine->add_observer( listener );
     }
 
-    void GazeApi::remove_listener(IGazeListener & listener)
+    void GazeApi::remove_listener( IGazeListener & listener )
     {
-        m_engine->remove_observer(listener);
+        m_engine->remove_observer( listener );
     }
 
-    void GazeApi::add_listener(ICalibrationResultListener & listener)
+    void GazeApi::add_listener( ICalibrationResultListener & listener )
     {
-        m_engine->add_observer(listener);
+        m_engine->add_observer( listener );
     }
 
-    void GazeApi::remove_listener(ICalibrationResultListener & listener)
+    void GazeApi::add_listener( IConnectionStateListener & listener )
     {
-        m_engine->remove_observer(listener);
+        m_engine->add_observer( listener );
     }
 
-    void GazeApi::add_listener(ITrackerStateListener & listener)
+    void GazeApi::remove_listener( ICalibrationResultListener & listener )
     {
-        m_engine->add_observer(listener);
+        m_engine->remove_observer( listener );
     }
 
-    void GazeApi::remove_listener(ITrackerStateListener & listener)
+    void GazeApi::add_listener( ITrackerStateListener & listener )
     {
-        m_engine->remove_observer(listener);
+        m_engine->add_observer( listener );
     }
 
-    void GazeApi::add_listener(ICalibrationProcessHandler & listener)
+    void GazeApi::remove_listener( ITrackerStateListener & listener )
     {
-        m_engine->add_observer(listener);
+        m_engine->remove_observer( listener );
     }
 
-    void GazeApi::remove_listener(ICalibrationProcessHandler & listener)
+    void GazeApi::add_listener( ICalibrationProcessHandler & listener )
     {
-        m_engine->remove_observer(listener);
+        m_engine->add_observer( listener );
+    }
+
+    void GazeApi::remove_listener( ICalibrationProcessHandler & listener )
+    {
+        m_engine->remove_observer( listener );
     }
 
     bool GazeApi::is_connected() const
@@ -752,16 +793,16 @@ namespace gtl
         return m_engine->is_running();
     }
 
-    bool GazeApi::connect(bool push_mode)
+    bool GazeApi::connect( bool push_mode )
     {
-        return connect(push_mode, 6555);
+        return connect( push_mode, 6555 );
     }
 
-    bool GazeApi::connect(bool push_mode, unsigned short port)
+    bool GazeApi::connect( bool push_mode, unsigned short port )
     {
         std::stringstream ss;
         ss << port;
-        return m_engine->connect(push_mode, ss.str());
+        return m_engine->connect( push_mode, ss.str() );
     }
 
     void GazeApi::disconnect()
@@ -769,29 +810,29 @@ namespace gtl
         m_engine->disconnect();
     }
 
-    void GazeApi::set_push(bool const enable)
+    void GazeApi::set_push( bool const enable )
     {
-        m_engine->set_push(enable);
+        m_engine->set_push( enable );
     }
 
-    void GazeApi::set_screen(Screen const & screen)
+    void GazeApi::set_screen( Screen const & screen )
     {
-        m_engine->set_screen(screen);
+        m_engine->set_screen( screen );
     }
 
-    void GazeApi::get_screen(Screen & screen) const
+    void GazeApi::get_screen( Screen & screen ) const
     {
-        m_engine->get_screen(screen);
+        m_engine->get_screen( screen );
     }
 
-    void GazeApi::get_frame(GazeData & gaze_data) const
+    void GazeApi::get_frame( GazeData & gaze_data ) const
     {
-        m_engine->get_frame(gaze_data);
+        m_engine->get_frame( gaze_data );
     }
 
-    void GazeApi::get_calib_result(CalibResult & calib_result) const
+    void GazeApi::get_calib_result( CalibResult & calib_result ) const
     {
-        m_engine->get_calib_result(calib_result);
+        m_engine->get_calib_result( calib_result );
     }
 
     ServerState const & GazeApi::get_server_state() const
@@ -799,9 +840,9 @@ namespace gtl
         return m_engine->get_server_state();
     }
 
-    bool GazeApi::calibration_start(int const point_count)
+    bool GazeApi::calibration_start( int const point_count )
     {
-        return m_engine->calibration_start(point_count);
+        return m_engine->calibration_start( point_count );
     }
 
     void GazeApi::calibration_clear()
@@ -814,15 +855,14 @@ namespace gtl
         m_engine->calibration_abort();
     }
 
-    void GazeApi::calibration_point_start(int const x, int const y)
+    void GazeApi::calibration_point_start( int const x, int const y )
     {
-        m_engine->calibration_point_start(x, y);
+        m_engine->calibration_point_start( x, y );
     }
 
     void GazeApi::calibration_point_end()
     {
         m_engine->calibration_point_end();
     }
+
 } // namespace gtl
-
-

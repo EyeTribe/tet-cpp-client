@@ -57,19 +57,31 @@ The complete API specification used by the C++ SDK to communicate with the serve
 
 Changelog
 ----
+
+0.9.49 (2014-12-10)
+
+- Fixed occational exception when disconnecting from the GazeAPI
+- Fixed GazeAPI hanging when connecting for the second time
+- Added support for listening to EyeTribe Server conneciton state (IConnectionStateListener)
+- Added missing calibration result notification to ICalibrationResultListener(s)
+
 0.9.36 (2014-07-17)
+
 - Updated license
 
 0.9.33 (2014-04-24)
+
 - Fixed missing calibration report targets
 - Added missing get_screen API method
 
 0.9.31 (2014-04-01)
+
 - Fixed wrong Json-formatted set screen request string
 - Fixed bug related to uninitialized "avg" member of GazeData
 - Vital server calls made blocking, including get_frame() when running in pull-mode
 
 0.9.27 (2014-02-11)
+
 - Bug fix of status code
 - Removed forward declarations and included interface and types headers instead in gazeapi.h
 - Fixed hanging observers
@@ -79,4 +91,5 @@ Changelog
 - Added is_connected() connectivity info to the GazeApi
 
 0.9.26 (2014-01-30)
+
 - Initial release
