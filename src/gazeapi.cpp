@@ -758,12 +758,17 @@ namespace gtl
         m_engine->add_observer( listener );
     }
 
+    void GazeApi::remove_listener( ICalibrationResultListener & listener )
+    {
+        m_engine->remove_observer( listener );
+    }
+
     void GazeApi::add_listener( IConnectionStateListener & listener )
     {
         m_engine->add_observer( listener );
     }
 
-    void GazeApi::remove_listener( ICalibrationResultListener & listener )
+    void GazeApi::remove_listener( IConnectionStateListener & listener )
     {
         m_engine->remove_observer( listener );
     }
