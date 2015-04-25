@@ -521,6 +521,10 @@ namespace gtl
                         return; // Parsing failed, so just return
                     }
 
+                    // Update everything
+                    int old_state = m_server_proxy.trackerstate
+                    m_server_proxy = server_state;
+
                     if( has_gaze_data )
                     {
                         m_gaze_lock.lock();
@@ -570,16 +574,14 @@ namespace gtl
                         }
                     }
 
-                    if( server_state.trackerstate != m_server_proxy.trackerstate )
+                    if( server_state.trackerstate != old_state )
                     {
-                        m_server_proxy.trackerstate = server_state.trackerstate;
-
                         typedef Observable<ITrackerStateListener> ObservableType;
                         ObservableType::ObserverVector const & observers = ObservableType::get_observers();
 
                         for( size_t i = 0; i < observers.size(); ++i )
                         {
-                            observers[ i ]->on_tracker_connection_changed( m_server_proxy.trackerstate );
+                            observers[ i ]->on_tracker_connection_changed( server_state.trackerstate );
                         }
                     }
 
@@ -588,8 +590,6 @@ namespace gtl
                         m_heartbeat.set_interval( server_state.heartbeatinterval );
                     }
 
-                    // Update everything
-                    m_server_proxy = server_state;
                     set_sync_req( SR_TSTATE );
                 }
                 return;
