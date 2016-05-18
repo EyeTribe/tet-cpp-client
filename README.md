@@ -6,7 +6,7 @@ C++ SDK for the EyeTribe Dev Kit
 Introduction
 ----
 
-This is the C++ library implementation for the EyeTribe Dev Kit. This reference implementation provides a C# interface for communicating with the EyeTribe Server through the open EyeTribe API. The library allow developers to get started quickly and focus their efforts on creating truly immersive and innovative apps using our eye tracking technology.
+This is the C++ library implementation for the EyeTribe Dev Kit. This reference implementation provides a C++ interface for communicating with the EyeTribe Server through the open EyeTribe API. The library allow developers to get started quickly and focus their efforts on creating truly immersive and innovative apps using our eye tracking technology.
 
 Documentation
 ----
