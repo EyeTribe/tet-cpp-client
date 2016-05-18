@@ -21,7 +21,6 @@ namespace gtl
         GAC_UNKNOWN,
         GAC_TRACKER,
         GAC_CALIBRATION,
-        GAC_HEARTBEAT
     };
 
     enum GazeApiRequest
@@ -180,8 +179,6 @@ namespace gtl
             TRACKER_CONNECTED_NOSTREAM = 4
         };
 
-        bool push;
-        int heartbeatinterval;
         int version;
         int trackerstate;
         int framerate;

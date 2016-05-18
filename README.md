@@ -1,15 +1,16 @@
-C++ SDK for The Eye Tribe Tracker
+![The Eye Tribe](tet_logo.png)
+
+C++ SDK for the EyeTribe Dev Kit
 ====
 
 Introduction
 ----
 
-This is the C++ reference implementation for The Eye Tribe Tracker and provides a C++ interface for communicating with the server, without resorting to socket programming and JSON-parsing. 
+This is the C++ library implementation for the EyeTribe Dev Kit. This reference implementation provides a C# interface for communicating with the EyeTribe Server through the open EyeTribe API. The library allow developers to get started quickly and focus their efforts on creating truly immersive and innovative apps using our eye tracking technology.
 
-This version is to be considered _alpha_. Feedback and bug fix submissions are welcome.
-
-Please visit our [developer website](http://dev.theeyetribe.com) for more information.
-
+Documentation
+----
+Find examples of how to use thislibrary at our [EyeTribe C++ Tutorial](http://dev.theeyetribe.com/cpp/). The EyeTribe API reference is found at [Eye Tribe Developer Website](http://dev.theeyetribe.com/api/).
 
 Compilation
 ----
@@ -30,66 +31,28 @@ Boost is meant to be built from source and does include instructions on how to a
 Build
 ----
 
-1. Install [Boost libraries](http://www.boost.org) 
-2. Use CMake GUI to generate project files 
+1. Install [Boost libraries](http://www.boost.org)  
+  a. Download and extract the Boost source code  
+  b. Run bootstrap from a terminal and follow the on-screen instructions
+2. Use CMake GUI to generate project files  
+  (CMake will try to find Boost during configure. If that fails do the following)  
+  a. Turn on the Advanced flag  
+  b. Set BOOST_INCLUDE_DIR to the path of the _root_ of Boost  
+  c. Configure  
+  d. If CMake fails to find the Boost libraries, then set BOOST_LIBRARYDIR to the path of where the prebuilt libraries  of Boost are located  
+  e. Configure  
+  f. Generate project files
 3. Build the C++ SDK library with your preferred compiler
 
-Note: In step 2) CMake will try to find Boost during configure. If that fails do the following:
-a. Turn on the Advanced flag
-b. Set BOOST_INCLUDE_DIR to the path of the _root_ of Boost
-c. Configure
-d. If CMake fails to find the Boost libraries, then set BOOST_LIBRARYDIR to the path of where the prebuilt libraries  of Boost are located
-e. Configure and this should succeed
-f. Generate project files 
 
-
-Samples
+Getting Help
 ----
 
-There are currently no samples available for the C++ SDK, but they will be added as they become available.
+- **Have questions or need support?** Visit our [developer forum](http://theeyetribe.com/forum/), to find answers to your questions and share your experiences with others developers.
+- **Have a bug to report?** Open a [new issue](https://github.com/EyeTribe/tet-charp-client/issues) and tell us what you are experiencing. Please add library version and full log if possible.
+- **Have a feature request?** Either open a [new issue](https://github.com/EyeTribe/tet-csharp-client/issues) or post in our [developer forum](http://theeyetribe.com/forum/). Tell us what feature you are missing and what it should do. 
 
-
-API Reference
+Feedback
 ----
 
-The complete API specification used by the C++ SDK to communicate with the server is available on our [developer website](http://dev.theeyetribe.com/api/).
-
-
-Changelog
-----
-
-0.9.49 (2014-12-10)
-
-- Fixed occational exception when disconnecting from the GazeAPI
-- Fixed GazeAPI hanging when connecting for the second time
-- Added support for listening to EyeTribe Server conneciton state (IConnectionStateListener)
-- Added missing calibration result notification to ICalibrationResultListener(s)
-
-0.9.36 (2014-07-17)
-
-- Updated license
-
-0.9.33 (2014-04-24)
-
-- Fixed missing calibration report targets
-- Added missing get_screen API method
-
-0.9.31 (2014-04-01)
-
-- Fixed wrong Json-formatted set screen request string
-- Fixed bug related to uninitialized "avg" member of GazeData
-- Vital server calls made blocking, including get_frame() when running in pull-mode
-
-0.9.27 (2014-02-11)
-
-- Bug fix of status code
-- Removed forward declarations and included interface and types headers instead in gazeapi.h
-- Fixed hanging observers
-- Cleans up when shutting down!
-- Added push_mode to connect (similar to C# SDK)
-- Fixed bug where no GazeData was ever sent to the client
-- Added is_connected() connectivity info to the GazeApi
-
-0.9.26 (2014-01-30)
-
-- Initial release
+If you like using this library, please consider sending out a tweet mentioning [@TheEyeTribe](twitter.com/theeyetribe), announce your app in our [developer forum](http://theeyetribe.com/forum/), or email [support@theeyetribe.com](mailto:support@theeyetribe.com) to let us know.

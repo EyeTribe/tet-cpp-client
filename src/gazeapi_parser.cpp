@@ -16,7 +16,14 @@ namespace gtl
 {
     /* static */ bool Parser::parse_description( std::string & description, boost::property_tree::ptree const & root )
     {
-        boost::optional<std::string> desc = root.get_optional<std::string>( "statusmessage" );
+        OptionalPTree values = root.get_child_optional( "values" );
+
+        if( !values )
+        {
+            return false;
+        }
+
+        boost::optional<std::string> desc = values->get_optional<std::string>( "statusmessage" );
 
         if( !desc )
         {
@@ -24,6 +31,22 @@ namespace gtl
         }
 
         description = *desc;
+
+        return true;
+    }
+
+    
+    /* static */ bool Parser::parse_id( int & id, boost::property_tree::ptree const & root )
+    {
+        boost::optional<int> msgid = root.get_optional<int>( "id" );
+        
+        if( !msgid )
+        {
+            id = -1;
+            return false;
+        }
+
+        id = *msgid;
 
         return true;
     }
@@ -136,8 +159,6 @@ namespace gtl
             parse_eye( gaze_data.righteye, frame->get_child( "righteye" ) );
         }
 
-        server_state.push = values->get<bool>( "push", server_state.push );
-        server_state.heartbeatinterval = values->get<int>( "heartbeatinterval", server_state.heartbeatinterval );
         server_state.version = values->get<int>( "version", server_state.version );
         server_state.trackerstate = values->get<int>( "trackerstate", server_state.trackerstate );
         server_state.framerate = values->get<int>( "framerate", server_state.framerate );
@@ -164,7 +185,6 @@ namespace gtl
         category =
             *cat == "tracker" ? GAC_TRACKER :
             *cat == "calibration" ? GAC_CALIBRATION :
-            *cat == "heartbeat" ? GAC_HEARTBEAT :
             GAC_UNKNOWN;
 
         return category != GAC_UNKNOWN;

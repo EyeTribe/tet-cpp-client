@@ -49,7 +49,7 @@ namespace gtl
             }
         }
 
-        ObserverVector const & get_observers()
+        ObserverVector const & get_observers() const
         {
             return m_observers;
         }

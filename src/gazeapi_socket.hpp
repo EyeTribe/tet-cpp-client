@@ -16,6 +16,10 @@
 #include <boost/timer.hpp>
 #include <boost/thread.hpp>
 
+#include <string>
+#include <vector>
+#include <deque>
+
 
 namespace gtl
 {
@@ -81,28 +85,54 @@ namespace gtl
         virtual void on_disconnected() = 0;
     };
 
+    class HandleMessages
+    {
+    public:
+        HandleMessages( class Socket & owner );
+        ~HandleMessages();
+    
+        void process_message( std::string const & message );
+        void terminate();
+
+    private:
+        void run();
+        void on_message( std::string const & message );
+
+    private:
+        Socket &                    m_owner;
+        bool                        m_terminate;
+        std::deque<std::string>     m_queue;
+        boost::mutex                m_lock;
+        boost::thread               m_thread;
+    };
+
     class Socket : public Observable < ISocketListener >
     {
     public:
-        Socket( bool verbose = false );
+        Socket( int verbose_level = 0 );
         ~Socket();
 
         bool connect( std::string const & address, std::string const & port );
         void disconnect();
         bool handle_connection_state();
+        int get_id( std::string const & message ) const;
         bool send( std::string const & message );
+        bool send_sync( std::string const & message );
 
     private:
-        void on_read( const boost::system::error_code& error, size_t bytes_transferred );
-        void on_write( const boost::system::error_code& error, char* data );
+        void on_read( boost::system::error_code const & error, size_t bytes_transferred );
+        void on_write( boost::system::error_code const & error, char* data );
 
     private:
-        JSONPackageMatcher              m_matcher;
-        boost::asio::streambuf          m_buffer;
-        boost::thread                   m_thread;
+        friend HandleMessages;
         boost::asio::io_service         m_io_service;
         boost::asio::ip::tcp::socket    m_socket;
-        bool                            m_verbose;
+        HandleMessages                  m_handler;
+        int                             m_verbose;
+        int                             m_sync_id;
+        boost::asio::streambuf          m_buffer;
+        boost::thread                   m_thread;
+        JSONPackageMatcher              m_matcher;
     };
 }
 
