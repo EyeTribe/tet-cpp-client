@@ -12,6 +12,7 @@
 
 #include <gazeapi_types.h>
 
+#define BOOST_SPIRIT_THREADSAFE
 #include <boost/property_tree/json_parser.hpp>
 
 
@@ -20,6 +21,7 @@ namespace gtl
     class Parser
     {
     public:
+        static bool parse_id( int & id, boost::property_tree::ptree const & root );
         static bool parse_description( std::string & description, boost::property_tree::ptree const & root );
         static bool parse_calib_result( CalibResult & calib_result, boost::property_tree::ptree const & root, bool & has_calib_result );
         static bool parse_status_code( GazeApiStatusCode & status_code, boost::property_tree::ptree const & root );

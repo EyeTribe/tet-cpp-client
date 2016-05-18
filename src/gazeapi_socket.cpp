@@ -28,10 +28,12 @@ namespace gtl
         , m_in_message( false )
     {}
 
-    Socket::Socket( bool verbose )
+    Socket::Socket( int verbose_level )
         : m_io_service()
         , m_socket( m_io_service )
-        , m_verbose( verbose )
+        , m_handler( *this )
+        , m_verbose( verbose_level )
+        , m_sync_id( -1 )
     {}
 
     Socket::~Socket()
@@ -87,7 +89,6 @@ namespace gtl
     {
         if( m_socket.is_open() )
         {
-            //m_socket.shutdown(boost::asio::socket_base::shutdown_type::shutdown_both);
             m_socket.close();
         }
         m_io_service.stop(); // stops io_service and exits thread
@@ -98,17 +99,24 @@ namespace gtl
         return true;
     }
 
+    int Socket::get_id( std::string const & message ) const
+    {
+        size_t const pos = message.find( "\"id\":" );
+        int const id = pos != std::string::npos ? std::atoi( &message[pos + 5] ) : -1;    // sizeof( "id": ) == 5
+        return id;
+    }
+
     bool Socket::send( std::string const & message )
     {
         size_t const size = message.size();
-        char* data = new char[ size ];
+        char * data = new char[ size ];
         memcpy( data, message.c_str(), size );
 
         boost::asio::async_write( m_socket,
             boost::asio::buffer( data, size ),
             boost::bind( &Socket::on_write, this, boost::asio::placeholders::error, data ) );
 
-        if( m_verbose )
+        if( m_verbose > 0 )
         {
             std::cout << "Send: " << message << std::endl << std::flush;
         }
@@ -116,15 +124,39 @@ namespace gtl
         return true;
     }
 
-    void Socket::on_read( const boost::system::error_code& error, size_t bytes_transferred )
+    bool Socket::send_sync( std::string const & message )
     {
-        Observable<ISocketListener>::ObserverVector const & observers = get_observers();
+        int const id = get_id( message );
+        if( id == -1 )
+        {
+            return false;
+        }
+        assert( m_sync_id == -1 );
+        m_sync_id = id;
+        if( m_verbose > 0 )
+        {
+            std::cout << "Sync [id: " << id << "] begun"<< std::endl << std::flush;
+        }
+        send( message );
+        while( m_sync_id == id )
+        {
+            boost::this_thread::sleep_for( boost::chrono::milliseconds( 1 ) );
+        }
+        if( m_verbose > 0 )
+        {
+            std::cout << "Sync [id: " << id << "] done" << std::endl << std::flush;
+        }
+        return true;
+    }
 
+    void Socket::on_read( boost::system::error_code const & error, size_t bytes_transferred )
+    {
         if( error )
         {
+            Observable<ISocketListener>::ObserverVector const & observers = get_observers();
             for( size_t i = 0; i < observers.size(); ++i )
             {
-                observers[ i ]->on_disconnected();
+                observers[i]->on_disconnected();
             }
         }
         else
@@ -138,21 +170,18 @@ namespace gtl
             std::copy( iterator::begin( input ), iterator::begin( input ) + bytes_transferred, std::back_inserter( reply ) );
             m_buffer.consume( bytes_transferred );
 
-            for( size_t i = 0; i < observers.size(); ++i )
+            if( m_verbose > 1 )
             {
-                observers[ i ]->on_message( reply );
+                std::cout << "Recv: " << reply << std::endl << std::flush;
             }
+
+            m_handler.process_message( reply );
 
             boost::asio::async_read_until( m_socket, m_buffer, m_matcher,
                 boost::bind( &Socket::on_read,
                 this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred ) );
-
-            if( m_verbose )
-            {
-                std::cout << "Recv: " << reply << std::endl << std::flush;
-            }
         }
     }
 
@@ -170,4 +199,71 @@ namespace gtl
 
         delete[] data;
     }
+
+    HandleMessages::HandleMessages( Socket & owner )
+        : m_owner( owner )
+        , m_terminate( false )
+    {
+        m_thread = boost::thread( boost::bind( &HandleMessages::run, this ) );
+    }
+
+    HandleMessages::~HandleMessages()
+    {
+        terminate();
+        if( m_thread.joinable() )
+        {
+            m_thread.join();
+        }
+    }
+
+    void HandleMessages::on_message( std::string const & message )
+    {
+        Observable<ISocketListener>::ObserverVector const & observers = m_owner.get_observers();
+        for( size_t i = 0; i < observers.size(); ++i )
+        {
+            observers[i]->on_message( message );
+        }
+    }
+
+    void HandleMessages::process_message( std::string const & message )
+    {
+        // Validate if message contain an id, and if we currently have a blocking request with that id
+        {
+            int const id = m_owner.get_id( message );
+            if( id != -1 && m_owner.m_sync_id == id )
+            {
+                on_message( message );
+                m_owner.m_sync_id = -1;
+                return;
+            }
+        }
+        m_lock.lock();
+        m_queue.push_back( message );
+        m_lock.unlock();
+    }
+
+    void HandleMessages::terminate()
+    {
+        m_terminate = true;
+    }
+
+    void HandleMessages::run()
+    {
+        while( !m_terminate )
+        {
+            if( m_queue.empty() )
+            {
+                boost::this_thread::sleep_for( boost::chrono::milliseconds( 1 ) );
+            }
+            else
+            {
+                m_lock.lock();
+                std::string const message = m_queue.front();
+                m_queue.pop_front();
+                m_lock.unlock();
+                on_message( message );
+            }
+        }
+    }
+
 }

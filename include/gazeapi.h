@@ -29,10 +29,14 @@ namespace gtl
         /** GazeApi constructor.
          * Creates an instance of the GazeApi that can be used to connect to a server.
          *
-         * \param[in] verbose Whether to output all JSON-messages recieved and sent on the socket.
+         * \param[in] verbose_level Control output of JSON-messages recieved and sent on the socket.
          * When enabling verbose output, messages are output using std::cout.
+         * levels:
+         * 0 = disabled,
+         * 1 = send (sync/async),
+         * 2 = all send/recv
          */
-        explicit GazeApi( bool verbose = false );
+        explicit GazeApi( int verbose_level = 0 );
         ~GazeApi();
 
         /** Add an IGazeListener to the GazeApi.
@@ -113,33 +117,25 @@ namespace gtl
 
         /** Connect to the server via default port.
          *
-         * \param[in] push_mode connect using push mode? otherwice pull mode is activated.
          * \return bool True if connected, false if connection failed.
          */
-        bool connect( bool push_mode );
+        bool connect();
 
         /** Connect to the server via specified port.
          *
-         * \param[in] push_mode connect using push mode? otherwice pull mode is activated.
          * \param[in] port port number to connect to server on.
          * \return bool True if connected, false if connection failed.
          */
-        bool connect( bool push_mode, unsigned short port );
+        bool connect( unsigned short port );
 
         /** Disconnect from server. */
         void disconnect();
-
-        /** Enable/disable server push of GazeData via call backs from IGazeListener interface.
-         *
-         * \param[in] enable True if enable, false if disable.
-         */
-        void set_push( bool const enable );
 
         /** Set screen parameters.
          *
          * \param[in] screen the Screen parameters to be set.
          */
-        void set_screen( Screen const & screen );
+        bool set_screen( Screen const & screen );
 
         /** Get current used screen parameters.
          *
@@ -149,13 +145,9 @@ namespace gtl
 
         /** Get current GazeData
          *
-         * Attempts to retrieve the current valid GazeData. If push-mode is enabled gaze_data is filled with the latest valid GazeData.
-         * If push-mode is disabled the method requests the latest GazeData from the server and fills out gaze_data when it is available.
+         * Retrieves the current valid GazeData.
          *
-         * In pull-mode this is a blocking call. The method does not terminate before a new GazeData has been delivered.
-         * In push-mode the GazeApi will fire an IGazeListener::on_gaze_data(gtl::GazeData const & gaze_data) containing the latest GazeData.
-         *
-         * \param[out] gaze_data valid GazeData if push-mode enabled, invalid otherwise.
+         * \param[out] gaze_data current valid GazeData.
          */
         void get_frame( GazeData & gaze_data ) const;
 
@@ -165,11 +157,18 @@ namespace gtl
          */
         void get_calib_result( CalibResult & calib_result ) const;
 
-        /** Read the current server state.
+        /** Read the current cached server state.
+         *  NOTE: The cached version is not guaranteed to be up to date.
          *
          * \returns ServerState the current server state.
          */
         ServerState const & get_server_state() const;
+
+        /** Update and return the current server state.
+        *
+        * \returns ServerState the current server state.
+        */
+        ServerState const & update_server_state();
 
         /** Begin new calibration sesssion.
          *
@@ -194,9 +193,10 @@ namespace gtl
          *
          * \param[in] x x-coordinate of calibration point.
          * \param[in] y y-coordinate of calibration point.
+         * \returns indication of the request processed okay.
          * \sa calibration_point_end.
          */
-        void calibration_point_start( int const x, int const y );
+        bool calibration_point_start( int const x, int const y );
 
         /** End current calibration point.
          * \sa calibration_point_start(int const x, int const y).
